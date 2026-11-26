@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="篩選商品列表的負庫存，匯出四欄 Excel。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>負庫存 Excel 轉檔</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, "Microsoft JhengHei", sans-serif;
+      color: #172d35;
+      background: #edf3f4;
+      line-height: 1.6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 45rem; margin: clamp(2rem, 9vw, 6rem) auto; padding-inline: 1.25rem; }
+    h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25; }
+    .intro { margin: .75rem 0 1.65rem; color: #415a63; }
+    section { background: #fff; border: 1px solid #d2e0e3; border-radius: 1rem; box-shadow: 0 16px 50px #18343f0d; padding: clamp(1.15rem, 4vw, 2rem); }
+    label { display: block; font-weight: 700; margin-bottom: .5rem; }
+    input {
+      display: block;
+      width: 100%;
+      padding: .65rem;
+      font: inherit;
+      font-size: .9375rem;
+      background: #f5f8f9;
+      border: 1px solid #b8cbd0;
+      border-radius: .6rem;
+    }
+    input::file-selector-button {
+      margin-inline-end: .75rem;
+      padding: .52rem .75rem;
+      border: 1px solid #b8cbd0;
+      border-radius: .35rem;
+      background: #fff;
+      color: #172d35;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .status { margin: 1rem 0 0; color: #415a63; overflow-wrap: anywhere; }
+    .status[data-error] { color: #ac3029; }
+    .download { display: inline-block; margin-top: .75rem; padding: .65rem 1.05rem; border-radius: .5rem; background: #0d6157; color: #fff; font-weight: 700; text-decoration: none; }
+    .download:hover { background: #094940; }
+    :focus-visible { outline: 3px solid #1a766d; outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    .privacy { margin: 1rem 0 0; font-size: .9rem; color: #415a63; }
+  </style>
+  <script src="./vendor/jszip.min.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>負庫存 Excel 轉檔</h1>
+    <p class="intro">篩選 AK 欄庫存量小於 0 的商品，依附件 1 的格式匯出 SKU、顏色、尺寸、庫存量。</p>
+    <section aria-label="商品列表轉檔">
+      <label for="product-file">商品列表（.xlsx）</label>
+      <input id="product-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <p id="status" class="status" role="status">選擇商品列表後即可下載結果。</p>
+      <a id="download" class="download" hidden>下載 Excel</a>
+      <noscript><p>請啟用 JavaScript 以使用轉檔功能。</p></noscript>
+    </section>
+    <p class="privacy">檔案只在此瀏覽器處理。</p>
+  </main>
+</body>
+</html>
