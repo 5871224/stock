@@ -6,6 +6,8 @@ const download = document.querySelector("#download");
 const reportInput = document.querySelector("#report-file");
 const reportStatus = document.querySelector("#report-status");
 const reportDownload = document.querySelector("#report-download");
+const shortageList = document.querySelector("#shortage-list");
+const shortageRows = document.querySelector("#shortage-rows");
 const order = new Intl.Collator("zh-Hant-TW-u-co-stroke");
 const xlsxType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const relationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -115,6 +117,7 @@ async function markOrderReport(file, shortages) {
     remaining.set(key, (remaining.get(key) ?? 0) - stock);
   }
 
+  const required = new Map(remaining);
   const marked = [];
   for (const row of rows.reverse()) {
     const sku = textAt(row, "N").trim();
@@ -185,10 +188,15 @@ async function markOrderReport(file, shortages) {
     zip.file(stylesPath, serializer.serializeToString(styles));
   }
 
-  const unresolved = [...remaining.values()].filter((needed) => needed > 0).length;
+  const unresolvedItems = [...remaining].filter(([, needed]) => needed > 0).map(([key, needed]) => {
+    const [sku, variant] = JSON.parse(key);
+    const demand = required.get(key);
+    return { sku, variant, demand, ordered: demand - needed, missing: needed };
+  });
+  const unresolved = unresolvedItems.length;
   const extra = [...remaining.values()].reduce((sum, needed) => sum + Math.max(0, -needed), 0);
   const blob = await zip.generateAsync({ type: "blob", mimeType: xlsxType, compression: "DEFLATE" });
-  return { blob, marked: marked.length, unresolved, extra };
+  return { blob, marked: marked.length, unresolved, extra, unresolvedItems };
 }
 
 function escapeExcelText(value) {
@@ -223,6 +231,20 @@ function clearDownload(link) {
   link.hidden = true;
 }
 
+function showOrderShortages(items) {
+  const rows = items.map(({ sku, variant, demand, ordered, missing }) => {
+    const row = document.createElement("tr");
+    for (const value of [sku, variant, demand, ordered, missing]) {
+      const cell = document.createElement("td");
+      cell.textContent = typeof value === "number" ? value.toLocaleString("zh-TW") : value;
+      row.append(cell);
+    }
+    return row;
+  });
+  shortageRows.replaceChildren(...rows);
+  shortageList.hidden = !rows.length;
+}
+
 let selection = 0;
 let reportSelection = 0;
 let shortages = null;
@@ -230,6 +252,7 @@ let shortages = null;
 async function updateOrderReport() {
   const current = ++reportSelection;
   clearDownload(reportDownload);
+  showOrderShortages([]);
   reportStatus.removeAttribute("data-error");
   reportInput.disabled = shortages === null;
   if (reportInput.disabled) {
@@ -243,12 +266,13 @@ async function updateOrderReport() {
   }
   reportStatus.textContent = "正在標記訂單報表…";
   try {
-    const { blob, marked, unresolved, extra } = await markOrderReport(file, shortages);
+    const { blob, marked, unresolved, extra, unresolvedItems } = await markOrderReport(file, shortages);
     if (current !== reportSelection) return;
     let message = `已標綠 ${marked.toLocaleString("zh-TW")} 列。`;
     if (unresolved) message += ` ${unresolved.toLocaleString("zh-TW")} 個品項的訂單數量不足。`;
     if (extra) message += ` 整列標記共多 ${extra.toLocaleString("zh-TW")} 件。`;
     reportStatus.textContent = message;
+    showOrderShortages(unresolvedItems);
     reportDownload.href = URL.createObjectURL(blob);
     reportDownload.download = `${file.name.slice(0, -5)}_負庫存標記.xlsx`;
     reportDownload.hidden = false;

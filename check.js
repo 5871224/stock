@@ -75,6 +75,11 @@ async (page) => {
   const reportLink = page.getByRole("link", { name: "下載標綠訂單報表" });
   await reportLink.waitFor({ state: "visible" });
   const reportSummary = await page.locator("#report-status").textContent();
+  const shortageDetails = await page.locator("#shortage-rows tr").allTextContents();
+  const shortageCells = await page.locator("#shortage-rows tr td").allTextContents();
+  if (shortageDetails.length !== 1 || JSON.stringify(shortageCells) !== JSON.stringify(["005", "黑/F", "31", "0", "31"])) {
+    throw new Error("訂單數量不足明細不符。");
+  }
   const highlight = await page.evaluate(async () => {
     const zip = await JSZip.loadAsync(await window.testWorkbook.arrayBuffer());
     const sheet = await zip.file("xl/worksheets/sheet1.xml").async("text");
@@ -91,5 +96,6 @@ async (page) => {
   await page.locator("#status[data-error]").waitFor({ state: "visible" });
   await link.waitFor({ state: "hidden" });
   await reportLink.waitFor({ state: "hidden" });
+  await page.locator("#shortage-list").waitFor({ state: "hidden" });
   return "PASS";
 }

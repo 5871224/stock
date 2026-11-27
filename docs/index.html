@@ -45,6 +45,13 @@
     }
     .status { margin: 1rem 0 0; color: #415a63; overflow-wrap: anywhere; }
     .status[data-error] { color: #ac3029; }
+    .shortage-list { margin-top: .75rem; overflow-x: auto; }
+    .shortage-list table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .shortage-list caption { text-align: left; font-weight: 700; margin-bottom: .35rem; }
+    .shortage-list th, .shortage-list td { padding: .4rem .5rem; border-bottom: 1px solid #d2e0e3; text-align: left; }
+    .shortage-list th { background: #f5f8f9; white-space: nowrap; }
+    .shortage-list th:nth-child(n+3), .shortage-list td:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+    .shortage-list td:last-child { color: #ac3029; font-weight: 700; }
     .download { display: inline-block; margin-top: .75rem; padding: .65rem 1.05rem; border-radius: .5rem; background: #0d6157; color: #fff; font-weight: 700; text-decoration: none; }
     .download:hover { background: #094940; }
     :focus-visible { outline: 3px solid #1a766d; outline-offset: 3px; }
@@ -69,6 +76,13 @@
       <label for="report-file">訂單報表（.xlsx）</label>
       <input id="report-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-describedby="report-status" disabled>
       <p id="report-status" class="status" role="status">請先選擇上方的商品列表。</p>
+      <div id="shortage-list" class="shortage-list" hidden>
+        <table>
+          <caption>訂單數量不足</caption>
+          <thead><tr><th scope="col">SKU</th><th scope="col">商品款式</th><th scope="col">需求數量</th><th scope="col">訂單數量</th><th scope="col">不足數量</th></tr></thead>
+          <tbody id="shortage-rows"></tbody>
+        </table>
+      </div>
       <a id="report-download" class="download" hidden>下載標綠訂單報表</a>
     </section>
     <p class="privacy">檔案只在此瀏覽器處理。</p>
