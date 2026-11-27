@@ -99,5 +99,32 @@ async (page) => {
   await link.waitFor({ state: "hidden" });
   await reportLink.waitFor({ state: "hidden" });
   await page.locator("#shortage-list").waitFor({ state: "hidden" });
+  // Drop files with misleading names and in either order; classify by worksheet headers.
+  await page.reload();
+  const dropFiles = async (items) => page.evaluate((items) => {
+    const transfer = new DataTransfer();
+    for (const [name, base64] of items) {
+      const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+      transfer.items.add(new File([bytes], name));
+    }
+    document.body.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }));
+  }, items);
+  await dropFiles([["product.xlsx", report]]);
+  await page.waitForFunction(() => document.querySelector("#report-status").textContent === "已選擇訂單報表，等待商品列表。");
+  await dropFiles([["order.xlsx", fixture]]);
+  await reportLink.waitFor({ state: "visible" });
+  if (await page.locator("#shortage-count").textContent() !== "1 個品項") throw new Error("先拖入訂單報表的結果不符。");
+
+  await page.reload();
+  await dropFiles([["first.xlsx", report], ["second.xlsx", fixture]]);
+  await reportLink.waitFor({ state: "visible" });
+  const selectedNames = await page.evaluate(() => [document.querySelector("#product-file").files[0].name, document.querySelector("#report-file").files[0].name]);
+  if (selectedNames.join() !== "second.xlsx,first.xlsx") throw new Error("同時拖入檔案分類不符。");
+  await dropFiles([["invalid.xlsx", "aW52YWxpZA=="]]);
+  await page.locator("#drop-status[data-error]").waitFor({ state: "visible" });
+  await reportLink.waitFor({ state: "visible" });
+  await dropFiles([["a.xlsx", fixture], ["b.xlsx", fixture]]);
+  await page.waitForFunction(() => document.querySelector("#drop-status").textContent.includes("相同類型"));
+  await reportLink.waitFor({ state: "visible" });
   return "PASS";
 }

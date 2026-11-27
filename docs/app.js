@@ -6,6 +6,7 @@ const download = document.querySelector("#download");
 const reportInput = document.querySelector("#report-file");
 const reportStatus = document.querySelector("#report-status");
 const reportDownload = document.querySelector("#report-download");
+const dropStatus = document.querySelector("#drop-status");
 const shortageList = document.querySelector("#shortage-list");
 const shortageCount = document.querySelector("#shortage-count");
 const shortageRows = document.querySelector("#shortage-rows");
@@ -44,7 +45,7 @@ function excelText(node) {
     .replace(/_x([\da-f]{4})_/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
 }
 
-async function openWorksheet(file, sheetName) {
+async function openWorkbook(file) {
   if (!/\.xlsx$/i.test(file.name)) throw new Error("請選擇 .xlsx 檔案。");
   const zip = await JSZip.loadAsync(await file.arrayBuffer()).catch(() => {
     throw new Error("無法開啟檔案，請選擇有效且未加密的 .xlsx 檔案。");
@@ -53,6 +54,11 @@ async function openWorksheet(file, sheetName) {
     readXml(zip, "xl/workbook.xml"),
     readXml(zip, "xl/_rels/workbook.xml.rels"),
   ]);
+  return { zip, workbook, relationshipXml };
+}
+
+async function openWorksheet(file, sheetName, source) {
+  const { zip, workbook, relationshipXml } = source ?? await openWorkbook(file);
   const sheet = workbook.querySelector(`sheets > sheet[name="${sheetName}"]`);
   if (!sheet) throw new Error(`找不到「${sheetName}」工作表。`);
   const relationships = Array.from(relationshipXml.querySelectorAll("Relationship"));
@@ -82,12 +88,38 @@ async function openWorksheet(file, sheetName) {
   return { zip, data, sheetPath, relationships, textAt };
 }
 
+function isProductHeader(header, textAt) {
+  return header?.getAttribute("r") === "1" && Object.entries(sourceHeaders).every(([col, prefix]) =>
+    textAt(header, col).trim().startsWith(prefix)
+  );
+}
+
+function isReportHeader(header, textAt) {
+  return header?.getAttribute("r") === "1" && textAt(header, "M").trim() === "商品款式" &&
+    textAt(header, "N").trim() === "SKU" && textAt(header, "P").trim() === "數量";
+}
+
+async function identifyFile(file) {
+  const source = await openWorkbook(file);
+  const matches = [];
+  for (const [type, sheet, validate] of [
+    ["product", "Products", isProductHeader],
+    ["report", "訂單明細", isReportHeader],
+  ]) {
+    if (!source.workbook.querySelector(`sheets > sheet[name="${sheet}"]`)) continue;
+    const { data, textAt } = await openWorksheet(file, sheet, source);
+    if (validate(data.querySelector("sheetData > row"), textAt)) matches.push(type);
+  }
+  if (matches.length !== 1) {
+    throw new Error(matches.length ? "同時符合兩種報表格式，無法自動分類。" : "工作表及欄位不符合商品列表或訂單報表格式。");
+  }
+  return matches[0];
+}
+
 async function readProducts(file) {
   const { data, textAt } = await openWorksheet(file, "Products");
   const [header, ...rows] = data.querySelectorAll("sheetData > row");
-  if (header?.getAttribute("r") !== "1" || Object.entries(sourceHeaders).some(([col, prefix]) =>
-    !textAt(header, col).trim().startsWith(prefix)
-  )) {
+  if (!isProductHeader(header, textAt)) {
     throw new Error("欄位與商品列表格式不符，請確認 AH、X、Z 與 AK 欄位。");
   }
 
@@ -106,8 +138,7 @@ function productKey(sku, variant) {
 async function markOrderReport(file, shortages) {
   const { zip, data, sheetPath, relationships, textAt } = await openWorksheet(file, "訂單明細");
   const [header, ...rows] = data.querySelectorAll("sheetData > row");
-  if (header?.getAttribute("r") !== "1" || textAt(header, "M").trim() !== "商品款式" ||
-      textAt(header, "N").trim() !== "SKU" || textAt(header, "P").trim() !== "數量") {
+  if (!isReportHeader(header, textAt)) {
     throw new Error("訂單明細的 M、N、P 欄須為商品款式、SKU、數量。");
   }
 
@@ -256,9 +287,8 @@ async function updateOrderReport() {
   clearDownload(reportDownload);
   showOrderShortages([]);
   reportStatus.removeAttribute("data-error");
-  reportInput.disabled = shortages === null;
-  if (reportInput.disabled) {
-    reportStatus.textContent = "請先選擇上方的商品列表。";
+  if (shortages === null) {
+    reportStatus.textContent = reportInput.files[0] ? "已選擇訂單報表，等待商品列表。" : "請先選擇商品列表，或先選擇訂單報表。";
     return;
   }
   const file = reportInput.files[0];
@@ -282,8 +312,7 @@ async function updateOrderReport() {
   }
 }
 
-reportInput.addEventListener("change", updateOrderReport);
-fileInput.addEventListener("change", async () => {
+async function updateProducts() {
   const current = ++selection;
   clearDownload(download);
   shortages = null;
@@ -313,4 +342,96 @@ fileInput.addEventListener("change", async () => {
     status.setAttribute("data-error", "");
     status.textContent = error.message || "轉檔失敗，請重新選擇商品列表。";
   }
+}
+
+let dropSelection = 0;
+let dragDepth = 0;
+
+function setDropStatus(message, error = false) {
+  dropStatus.textContent = message;
+  dropStatus.hidden = !message;
+  dropStatus.toggleAttribute("data-error", error);
+}
+
+function cancelPendingDrop() {
+  ++dropSelection;
+  setDropStatus("");
+}
+
+fileInput.addEventListener("change", () => {
+  cancelPendingDrop();
+  void updateProducts();
+});
+reportInput.addEventListener("change", () => {
+  cancelPendingDrop();
+  void updateOrderReport();
+});
+
+function hasFiles(event) {
+  return Array.from(event.dataTransfer?.types ?? []).includes("Files");
+}
+
+function assignFile(input, file) {
+  const transfer = new DataTransfer();
+  transfer.items.add(file);
+  input.files = transfer.files;
+}
+
+async function acceptDroppedFiles(files) {
+  const current = ++dropSelection;
+  setDropStatus("正在辨識檔案格式…");
+  try {
+    if (files.length > 2) throw new Error("一次最多拖入一份商品列表及一份訂單報表。");
+    const identified = await Promise.all(files.map(async (file) => {
+      try {
+        return { file, type: await identifyFile(file) };
+      } catch (error) {
+        throw new Error(file.name + "：" + error.message);
+      }
+    }));
+    if (current !== dropSelection) return;
+    const product = identified.find(item => item.type === "product");
+    const report = identified.find(item => item.type === "report");
+    if (identified.length === 2 && (!product || !report)) {
+      throw new Error("拖入了兩份相同類型的檔案，請一次選擇一份。");
+    }
+    // Assign both inputs first so product processing automatically picks up the report.
+    if (product) assignFile(fileInput, product.file);
+    if (report) assignFile(reportInput, report.file);
+    setDropStatus("");
+    if (product) void updateProducts();
+    else if (report) void updateOrderReport();
+  } catch (error) {
+    if (current !== dropSelection) return;
+    setDropStatus(error.message || "無法辨識檔案。", true);
+  }
+}
+
+window.addEventListener("dragenter", event => {
+  if (!hasFiles(event)) return;
+  event.preventDefault();
+  ++dragDepth;
+  document.body.classList.add("is-dragging");
+});
+window.addEventListener("dragover", event => {
+  if (!hasFiles(event)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+  document.body.classList.add("is-dragging");
+});
+window.addEventListener("dragleave", () => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (!dragDepth) document.body.classList.remove("is-dragging");
+});
+window.addEventListener("drop", event => {
+  if (!hasFiles(event) && !event.dataTransfer?.files.length) return;
+  event.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove("is-dragging");
+  const files = Array.from(event.dataTransfer.files);
+  if (files.length) void acceptDroppedFiles(files);
+});
+window.addEventListener("blur", () => {
+  dragDepth = 0;
+  document.body.classList.remove("is-dragging");
 });
