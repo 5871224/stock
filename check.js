@@ -88,7 +88,7 @@ async (page) => {
     const rows = Array.from(xml.querySelectorAll('row:has(c[r^="A"][s="2"])'), (row) => row.getAttribute("r"));
     return { rows, keptNumberFormat: styles.includes('fillId="1" numFmtId="2"') };
   });
-  if (highlight.rows.join() !== "4,5,6" || !highlight.keptNumberFormat || !reportSummary.includes("多 1 件")) {
+  if (highlight.rows.join() !== "4,5,6" || !highlight.keptNumberFormat || reportSummary.includes("整列標記共多")) {
     throw new Error("訂單款式配對、表尾累計、綠色格式或原始數字格式不符。");
   }
 
