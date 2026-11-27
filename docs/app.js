@@ -290,12 +290,12 @@ async function updateOrderReport() {
   showOrderShortages([]);
   reportStatus.removeAttribute("data-error");
   if (shortages === null) {
-    reportStatus.textContent = reportInput.files[0] ? "已選擇訂單報表，等待商品列表。" : "請先選擇商品列表，或先選擇訂單報表。";
+    reportStatus.textContent = reportInput.files[0] ? "已選擇訂單報表，等待商品列表。" : "";
     return;
   }
   const file = reportInput.files[0];
   if (!file) {
-    reportStatus.textContent = "選擇訂單報表後，系統會依負庫存從表尾往上累計數量並標綠。";
+    reportStatus.textContent = "";
     return;
   }
   reportStatus.textContent = "正在標記訂單報表…";
@@ -322,7 +322,7 @@ async function updateProducts() {
   status.removeAttribute("data-error");
   const file = fileInput.files[0];
   if (!file) {
-    status.textContent = "選擇商品列表後即可下載結果。";
+    status.textContent = "";
     return;
   }
 

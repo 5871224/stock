@@ -47,6 +47,7 @@
       cursor: pointer;
     }
     .status { margin: 1rem 0 0; color: #415a63; overflow-wrap: anywhere; }
+    .status:empty { display: none; }
     .status[data-error] { color: #ac3029; }
     .shortage-list { margin-top: .75rem; overflow-x: auto; }
     .shortage-list table { width: 100%; border-collapse: collapse; font-size: .9rem; }
@@ -72,14 +73,14 @@
     <section aria-label="商品列表轉檔">
       <label for="product-file">商品列表（.xlsx）</label>
       <input id="product-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-      <p id="status" class="status" role="status">選擇商品列表後即可下載結果。</p>
+      <p id="status" class="status" role="status"></p>
       <a id="download" class="download" hidden>下載 Excel</a>
       <noscript><p>請啟用 JavaScript 以使用轉檔功能。</p></noscript>
     </section>
     <section aria-label="訂單報表標記">
       <label for="report-file">訂單報表（.xlsx）</label>
       <input id="report-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-describedby="report-status">
-      <p id="report-status" class="status" role="status">可先選擇商品列表或訂單報表。</p>
+      <p id="report-status" class="status" role="status"></p>
       <a id="report-download" class="download" hidden>下載標綠訂單報表</a>
       <div id="shortage-list" class="shortage-list" hidden>
         <table>
