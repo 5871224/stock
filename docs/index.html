@@ -48,6 +48,7 @@
     .shortage-list { margin-top: .75rem; overflow-x: auto; }
     .shortage-list table { width: 100%; border-collapse: collapse; font-size: .9rem; }
     .shortage-list caption { text-align: left; font-weight: 700; margin-bottom: .35rem; }
+    #shortage-count { margin-inline-start: .4rem; font-weight: 400; color: #415a63; }
     .shortage-list th, .shortage-list td { padding: .4rem .5rem; border-bottom: 1px solid #d2e0e3; text-align: left; }
     .shortage-list th { background: #f5f8f9; white-space: nowrap; }
     .shortage-list th:nth-child(n+3), .shortage-list td:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
@@ -79,7 +80,7 @@
       <a id="report-download" class="download" hidden>下載標綠訂單報表</a>
       <div id="shortage-list" class="shortage-list" hidden>
         <table>
-          <caption>訂單數量不足</caption>
+          <caption>訂單數量不足 <span id="shortage-count"></span></caption>
           <thead><tr><th scope="col">SKU</th><th scope="col">商品款式</th><th scope="col">需求數量</th><th scope="col">訂單數量</th><th scope="col">不足數量</th></tr></thead>
           <tbody id="shortage-rows"></tbody>
         </table>

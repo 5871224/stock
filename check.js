@@ -32,6 +32,7 @@ async (page) => {
   await input.setInputFiles({ name: "products.xlsx", mimeType: "application/octet-stream", buffer: Buffer.from(fixture, "base64") });
   const link = page.getByRole("link", { name: "下載 Excel" });
   await link.waitFor({ state: "visible" });
+  if (await page.locator("#status").textContent() !== "找到 3 筆負庫存，共缺貨 34 件。") throw new Error("負庫存總件數不符。");
   const data = await page.evaluate(async () => {
     const zip = await JSZip.loadAsync(await window.testWorkbook.arrayBuffer());
     const sheet = await zip.file("xl/worksheets/sheet1.xml").async("text");
@@ -75,6 +76,7 @@ async (page) => {
   const reportLink = page.getByRole("link", { name: "下載標綠訂單報表" });
   await reportLink.waitFor({ state: "visible" });
   const reportSummary = await page.locator("#report-status").textContent();
+  if (reportSummary !== "已標綠 3 列。" || await page.locator("#shortage-count").textContent() !== "1 個品項") throw new Error("訂單統計或不足表格標題不符。");
   const shortageDetails = await page.locator("#shortage-rows tr").allTextContents();
   const shortageCells = await page.locator("#shortage-rows tr td").allTextContents();
   if (shortageDetails.length !== 1 || JSON.stringify(shortageCells) !== JSON.stringify(["005", "黑/F", "31", "0", "31"])) {

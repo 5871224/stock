@@ -7,6 +7,7 @@ const reportInput = document.querySelector("#report-file");
 const reportStatus = document.querySelector("#report-status");
 const reportDownload = document.querySelector("#report-download");
 const shortageList = document.querySelector("#shortage-list");
+const shortageCount = document.querySelector("#shortage-count");
 const shortageRows = document.querySelector("#shortage-rows");
 const order = new Intl.Collator("zh-Hant-TW-u-co-stroke");
 const xlsxType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -242,6 +243,7 @@ function showOrderShortages(items) {
     return row;
   });
   shortageRows.replaceChildren(...rows);
+  shortageCount.textContent = `${rows.length.toLocaleString("zh-TW")} 個品項`;
   shortageList.hidden = !rows.length;
 }
 
@@ -266,11 +268,9 @@ async function updateOrderReport() {
   }
   reportStatus.textContent = "正在標記訂單報表…";
   try {
-    const { blob, marked, unresolved, unresolvedItems } = await markOrderReport(file, shortages);
+    const { blob, marked, unresolvedItems } = await markOrderReport(file, shortages);
     if (current !== reportSelection) return;
-    let message = `已標綠 ${marked.toLocaleString("zh-TW")} 列。`;
-    if (unresolved) message += ` ${unresolved.toLocaleString("zh-TW")} 個品項的訂單數量不足。`;
-    reportStatus.textContent = message;
+    reportStatus.textContent = `已標綠 ${marked.toLocaleString("zh-TW")} 列。`;
     showOrderShortages(unresolvedItems);
     reportDownload.href = URL.createObjectURL(blob);
     reportDownload.download = `${file.name.slice(0, -5)}_負庫存標記.xlsx`;
@@ -301,7 +301,8 @@ fileInput.addEventListener("change", async () => {
     if (current !== selection) return;
     const result = await createWorkbook(rows);
     if (current !== selection) return;
-    status.textContent = rows.length ? `找到 ${rows.length.toLocaleString("zh-TW")} 筆負庫存。` : "沒有負庫存，可下載只有欄名的 Excel。";
+    const totalShortage = rows.reduce((sum, row) => sum - row[3], 0);
+    status.textContent = rows.length ? `找到 ${rows.length.toLocaleString("zh-TW")} 筆負庫存，共缺貨 ${totalShortage.toLocaleString("zh-TW")} 件。` : "沒有負庫存，可下載只有欄名的 Excel。";
     download.href = URL.createObjectURL(result);
     download.download = `${file.name.slice(0, -5)}_負庫存.xlsx`;
     download.hidden = false;
