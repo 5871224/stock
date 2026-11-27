@@ -151,6 +151,7 @@ async function markOrderReport(file, shortages) {
 
   const required = new Map(remaining);
   const marked = [];
+  let markedQuantity = 0;
   for (const row of rows.reverse()) {
     const sku = textAt(row, "N").trim();
     if (!sku) continue;
@@ -160,6 +161,7 @@ async function markOrderReport(file, shortages) {
     const quantity = Number(textAt(row, "P"));
     if (Number.isFinite(quantity) && quantity > 0) {
       marked.push(row);
+      markedQuantity += quantity;
       remaining.set(key, needed - quantity);
     }
   }
@@ -228,7 +230,7 @@ async function markOrderReport(file, shortages) {
   const unresolved = unresolvedItems.length;
   const extra = [...remaining.values()].reduce((sum, needed) => sum + Math.max(0, -needed), 0);
   const blob = await zip.generateAsync({ type: "blob", mimeType: xlsxType, compression: "DEFLATE" });
-  return { blob, marked: marked.length, unresolved, extra, unresolvedItems };
+  return { blob, marked: marked.length, markedQuantity, unresolved, extra, unresolvedItems };
 }
 
 function escapeExcelText(value) {
@@ -298,9 +300,9 @@ async function updateOrderReport() {
   }
   reportStatus.textContent = "正在標記訂單報表…";
   try {
-    const { blob, marked, unresolvedItems } = await markOrderReport(file, shortages);
+    const { blob, markedQuantity, unresolvedItems } = await markOrderReport(file, shortages);
     if (current !== reportSelection) return;
-    reportStatus.textContent = `已標綠 ${marked.toLocaleString("zh-TW")} 列。`;
+    reportStatus.textContent = `已標綠 ${markedQuantity.toLocaleString("zh-TW")} 件。`;
     showOrderShortages(unresolvedItems);
     reportDownload.href = URL.createObjectURL(blob);
     reportDownload.download = `${file.name.slice(0, -5)}_負庫存標記.xlsx`;

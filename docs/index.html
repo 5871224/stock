@@ -18,10 +18,9 @@
     body { margin: 0; }
     main { max-width: 45rem; margin: clamp(2rem, 9vw, 6rem) auto; padding-inline: 1.25rem; }
     h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25; }
-    .intro { margin: .75rem 0 1.65rem; color: #415a63; }
     section { background: #fff; border: 1px solid #d2e0e3; border-radius: 1rem; box-shadow: 0 16px 50px #18343f0d; padding: clamp(1.15rem, 4vw, 2rem); }
     section + section { margin-top: 1rem; }
-    .drop-hint { margin: -.75rem 0 1rem; color: #415a63; font-size: .9rem; }
+    .drop-hint { margin: .75rem 0 1rem; color: #415a63; font-size: .9rem; }
     #drop-status { margin: 0 0 1rem; }
     body.is-dragging section { outline: 2px dashed #0d6157; outline-offset: 3px; background: #f1faf8; }
     body.is-dragging .drop-hint { color: #0d6157; font-weight: 700; }
@@ -69,7 +68,6 @@
 <body>
   <main>
     <h1>負庫存 Excel 轉檔</h1>
-    <p class="intro">從商品列表的 AK 欄找出負庫存，並依缺貨量標記訂單報表。</p>
     <p class="drop-hint">可將商品列表、訂單報表拖曳到網頁任意位置，自動辨識檔案類型。</p>
     <p id="drop-status" class="status" role="status" hidden></p>
     <section aria-label="商品列表轉檔">
