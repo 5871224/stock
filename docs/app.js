@@ -266,11 +266,10 @@ async function updateOrderReport() {
   }
   reportStatus.textContent = "正在標記訂單報表…";
   try {
-    const { blob, marked, unresolved, extra, unresolvedItems } = await markOrderReport(file, shortages);
+    const { blob, marked, unresolved, unresolvedItems } = await markOrderReport(file, shortages);
     if (current !== reportSelection) return;
     let message = `已標綠 ${marked.toLocaleString("zh-TW")} 列。`;
     if (unresolved) message += ` ${unresolved.toLocaleString("zh-TW")} 個品項的訂單數量不足。`;
-    if (extra) message += ` 整列標記共多 ${extra.toLocaleString("zh-TW")} 件。`;
     reportStatus.textContent = message;
     showOrderShortages(unresolvedItems);
     reportDownload.href = URL.createObjectURL(blob);
